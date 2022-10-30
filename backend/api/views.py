@@ -14,6 +14,11 @@ redis_instance = redis.StrictRedis(
     )
 
 
+def get_bad_request(message):
+    return Response({"status": message},
+                    status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['POST'])
 def set_domains(request):
     """Cохраняет в Redis пару (key, value):
@@ -24,8 +29,9 @@ def set_domains(request):
     try:
         urls_list = request.data['links']
     except KeyError:
-        return Response({"status": 'В запросе отсутствует ключ links'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        return get_bad_request('В запросе отсутствует ключ links')
+    except TypeError:
+        return get_bad_request('Передайте данные в JSON формате')
 
     for i, url in enumerate(urls_list):
         if url.startswith('http'):
@@ -38,7 +44,7 @@ def set_domains(request):
     response = {
         "status": 'ок'
     }
-    return Response(response)
+    return Response(response, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
@@ -51,25 +57,20 @@ def get_domains(request):
         since = int(request.query_params.get('from'))
         to = int(request.query_params.get('to'))
     except TypeError:
-        return Response({'status': 'Неверные параметры запроса'},
-                        status=status.HTTP_400_BAD_REQUEST)
-
+        return get_bad_request('Неверные параметры запроса')
+    project_birthday = 1667163944  # время создания проекта
+    if since < project_birthday:
+        return get_bad_request('Точка from раньше чем 31.10.22')
     for key in range(since, to + 1):
         if redis_instance.get(key):
             items += (str(redis_instance.get(key), 'UTF-8').split(', '))
             continue
 
     items = list(set(items))
-
     if items:
-        message = 'ок'
-        http_status = status.HTTP_200_OK
-    else:
-        message = 'За данный промежуток времени данные не найдены'
-        http_status = status.HTTP_400_BAD_REQUEST
-
-    response = {
-        'domains': items,
-        'status': message
-    }
-    return Response(response, status=http_status)
+        response = {
+            'domains': items,
+            'status': 'ок'
+        }
+        return Response(response, status=status.HTTP_200_OK)
+    return get_bad_request('Данные отсутствуют, измените диапазон')
