@@ -54,3 +54,7 @@ pip install -r requirements
 ```
 cd backend/&&python manage.py runserver
 ```
+ - запуск тестов
+```
+python manage.py test
+```

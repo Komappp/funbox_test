@@ -42,7 +42,7 @@ class ApiTests(APITestCase):
         since = int(time.time())
         self.client.post(url_set, data, format='json')
         to = int(time.time())
-        url_get = ApiTests.url_get + f'?from={since}&to={to}'
+        url_get = ApiTests.url_get + f'?from={since}&to={to+1}'
         data = self.client.get(url_get).data['domains']
         self.assertTrue('ya.ru' in data)
         self.assertTrue('vk.com' in data)
